@@ -62,10 +62,9 @@
 
 ### 依赖包说明
 
-- **aiodns (>=3.6.0)**：异步 DNS 解析库，提供高性能并发查询
-- **colorama (>=0.4.6)**：跨平台彩色终端输出
-- **dnspython (>=2.8.0)**：DNS 工具包，提供同步 DNS 查询功能
-- **prettytable (>=3.17.0)**：美化表格输出（可选，有回退方案）
+- **aiodns (>=3.6.0)**：异步 DNS 解析库，提供高性能并发查询（必需）
+- **colorama (>=0.4.6)**：跨平台彩色终端输出（必需）
+- **tabulate (>=0.9.0)**：表格输出（必需）
 
 ## 项目结构说明
 
@@ -132,7 +131,6 @@ python main.py -d 223.5.5.5 114.114.114.114 119.29.29.29 -n taobao.com jd.com
 | `--tests`       | `-t` | 每个域名测试次数               | 3                        |
 | `--timeout`     | -    | DNS 查询超时时间（秒）         | 2.0                      |
 | `--retries`     | -    | 查询失败时的重试次数           | 1                        |
-| `--sync`        | -    | 强制使用同步模式               | 否                       |
 | `--no-color`    | -    | 禁用彩色输出                   | 否                       |
 | `--save-report` | -    | 保存详细报告到文件             | 否                       |
 | `--report-file` | -    | 报告文件名                     | dns_benchmark_report.txt |
@@ -301,13 +299,13 @@ if __name__ == '__main__':
 uv sync
 
 # 或手动安装
-pip install dnspython aiodns colorama prettytable
+pip install aiodns colorama tabulate
 ```
 
 #### 问题 2：异步模式不可用
 
 ```plain
-⚠️ 使用同步模式进行测试（aiodns不可用）
+错误: aiodns 模块不可用，无法进行DNS测试
 ```
 
 **解决方案**：
@@ -315,10 +313,9 @@ pip install dnspython aiodns colorama prettytable
 ```bash
 # 确保aiodns已安装
 pip install aiodns
-
-# 或强制使用同步模式
-python main.py -d 8.8.8.8 -n google.com --sync
 ```
+
+注意：本工具仅支持异步模式，需要 aiodns 模块才能运行。
 
 #### 问题 3：DNS 查询超时
 
@@ -382,7 +379,7 @@ logging.basicConfig(level=logging.DEBUG)
 1. 查看详细帮助：`python main.py --help`
 2. 查看使用示例：程序内置了多个使用示例
 3. 检查错误日志：查看控制台输出的详细错误信息
-4. 验证依赖版本：`pip list | grep -E "aiodns|dnspython|colorama"`
+4. 验证依赖版本：`pip list | grep -E "aiodns|tabulate|colorama"`
 
 ---
 

@@ -20,11 +20,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='repla
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # 检查并导入所需模块
-try:
-    import dns.resolver
-    IMPORT_ERROR = None
-except ImportError as e:
-    IMPORT_ERROR = str(e)
+# 注意：已移除 dnspython 和 prettytable 依赖
 
 # 尝试导入异步DNS库
 try:
@@ -33,14 +29,7 @@ try:
 except ImportError:
     HAS_AIODNS = False
 
-# 尝试导入prettytable用于美化表格输出
-try:
-    from prettytable import PrettyTable
-    USE_PRETTYTABLE = True
-except ImportError:
-    USE_PRETTYTABLE = False
-
-# 尝试导入tabulate用于替代表格输出
+# 尝试导入tabulate用于表格输出（必需依赖）
 try:
     from tabulate import tabulate
     HAS_TABULATE = True
@@ -109,69 +98,41 @@ def get_progress_bar(progress: float, width: int = 30) -> str:
     bar = "█" * filled + "░" * (width - filled)
     return f"[{bar}] {progress*100:.1f}%"
 
-if IMPORT_ERROR:
+# 检查必需依赖
+missing_deps = []
+if not HAS_AIODNS:
+    missing_deps.append("aiodns")
+if not HAS_TABULATE:
+    missing_deps.append("tabulate")
+if not HAS_COLORAMA:
+    missing_deps.append("colorama")
+
+if missing_deps:
     print_colored("="*70, Fore.RED)
     print_colored("错误: 缺少必要的Python模块", Fore.RED, Style.BRIGHT)
     print_colored("="*70, Fore.RED)
-    print_colored(f"\n未找到模块: {IMPORT_ERROR}", Fore.YELLOW)
+    print_colored(f"\n未找到模块: {', '.join(missing_deps)}", Fore.YELLOW)
     print_colored("\n请安装所需模块:", Fore.CYAN)
-    print_colored("  pip install dnspython", Fore.GREEN)
-
-    print_colored("\n可选依赖（推荐安装以获得更好的体验）:", Fore.CYAN)
     print_colored("  pip install aiodns colorama tabulate", Fore.GREEN)
-
-    if not USE_PRETTYTABLE:
-        print_colored("  pip install prettytable", Fore.GREEN)
-
     print_colored("\n安装完成后重新运行此脚本", Fore.CYAN)
     sys.exit(1)
 
 
-def resolve_domain(dns_server: str, domain: str, timeout: float = 2.0) -> Optional[float]:
-    """
-    使用指定的DNS服务器解析域名，返回耗时（秒）
-    同步版本，保持向后兼容性
-    """
-    try:
-        # 创建解析器时不读取系统注册表
-        resolver = dns.resolver.Resolver(configure=False)
-        resolver.nameservers = [dns_server]
-        resolver.timeout = timeout
-        resolver.lifetime = timeout
-
-        start_time = time.perf_counter()
-        resolver.resolve(domain, 'A')
-        end_time = time.perf_counter()
-        return end_time - start_time
-    except dns.resolver.Timeout:
-        end_time = time.perf_counter()
-        print_colored(f"  超时: {domain} @ {dns_server} ({timeout}s)", Fore.YELLOW)
-        return None
-    except dns.resolver.NXDOMAIN:
-        end_time = time.perf_counter()
-        print_colored(f"  域名不存在: {domain} @ {dns_server}", Fore.YELLOW)
-        return None
-    except dns.resolver.NoAnswer:
-        end_time = time.perf_counter()
-        print_colored(f"  无应答: {domain} @ {dns_server}", Fore.YELLOW)
-        return None
-    except Exception as e:
-        end_time = time.perf_counter()
-        print_colored(f"  错误: {domain} @ {dns_server} - {str(e)}", Fore.RED)
-        return None
 
 
 async def async_resolve_domain(dns_server: str, domain: str, timeout: float = 2.0,
                                retries: int = 1) -> Optional[float]:
     """
     异步DNS解析函数
-    使用aiodns（如果可用）或回退到同步版本
+    使用aiodns进行异步DNS查询
     """
     if HAS_AIODNS:
         return await _async_resolve_aiodns(dns_server, domain, timeout, retries)
     else:
-        # 回退到同步版本
-        return resolve_domain(dns_server, domain, timeout)
+        # aiodns 不可用，提示用户安装
+        print_colored("错误: aiodns 模块不可用，无法进行DNS查询", Fore.RED)
+        print_colored("请安装 aiodns 模块: pip install aiodns", Fore.YELLOW)
+        return None
 
 
 async def _async_resolve_aiodns(dns_server: str, domain: str, timeout: float = 2.0,
@@ -225,68 +186,6 @@ async def _async_resolve_aiodns(dns_server: str, domain: str, timeout: float = 2
     return None  # 所有重试都失败
 
 
-def test_dns_server(dns_server: str, domains: List[str], num_tests: int, timeout: float) -> Dict:
-    """
-    测试单个DNS服务器对所有域名的解析性能
-    同步版本，保持向后兼容性
-    """
-    results = {
-        'dns_server': dns_server,
-        'domain_stats': {},
-        'all_times': [],
-        'errors': []
-    }
-
-    print_colored(f"\n【{dns_server}】", Fore.CYAN)
-
-    for domain in domains:
-        domain_times = []
-        print_colored(f"  测试域名: {domain}", Fore.WHITE, end='', flush=True)
-
-        for i in range(num_tests):
-            query_time = resolve_domain(dns_server, domain, timeout)
-            domain_times.append(query_time)
-
-            if query_time is None:
-                print_colored(" ❌", Fore.RED, end='', flush=True)
-                results['errors'].append({
-                    'domain': domain,
-                    'test_num': i,
-                    'error': '解析失败'
-                })
-            else:
-                print_colored(f" {query_time*1000:.1f}ms", Fore.GREEN, end='', flush=True)
-
-        # 计算该域名的统计
-        valid_times = [t for t in domain_times if t is not None]
-        if valid_times:
-            stats = {
-                'min': min(valid_times),
-                'max': max(valid_times),
-                'avg': statistics.mean(valid_times),
-                'times': domain_times,
-                'success_rate': len(valid_times) / len(domain_times) * 100
-            }
-        else:
-            stats = {
-                'min': None,
-                'max': None,
-                'avg': None,
-                'times': domain_times,
-                'success_rate': 0
-            }
-
-        results['domain_stats'][domain] = stats
-        results['all_times'].extend(valid_times)
-
-        # 显示结果
-        if stats['avg'] is not None:
-            color = Fore.GREEN if stats['success_rate'] >= 80 else Fore.YELLOW if stats['success_rate'] >= 50 else Fore.RED
-            print_colored(f" | 平均: {stats['avg']*1000:.1f}ms, 成功率: {stats['success_rate']:.1f}%", color)
-        else:
-            print_colored(" | 全部失败", Fore.RED)
-
-    return results
 
 
 async def async_test_dns_server(dns_server: str, domains: List[str], num_tests: int,
@@ -467,11 +366,8 @@ class DNSBenchmark:
                 self.dns_servers, self.domains, self.num_tests, self.timeout, self.retries
             )
         else:
-            # 同步回退模式
-            self.results = []
-            for dns_server in self.dns_servers:
-                result = test_dns_server(dns_server, self.domains, self.num_tests, self.timeout)
-                self.results.append(result)
+            # aiodns 不可用，抛出错误
+            raise RuntimeError("aiodns 模块不可用，无法进行异步DNS测试。请安装 aiodns: pip install aiodns")
 
         self.end_time = time.time()
         elapsed = self.end_time - self.start_time
@@ -479,21 +375,6 @@ class DNSBenchmark:
 
         return self.results
 
-    def run_sync(self) -> List[Dict]:
-        """同步运行基准测试（保持向后兼容性）"""
-        self.start_time = time.time()
-        print_colored(f"\n⏰ 开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", Fore.CYAN)
-
-        self.results = []
-        for dns_server in self.dns_servers:
-            result = test_dns_server(dns_server, self.domains, self.num_tests, self.timeout)
-            self.results.append(result)
-
-        self.end_time = time.time()
-        elapsed = self.end_time - self.start_time
-        print_colored(f"\n✅ 测试完成! 总耗时: {elapsed:.2f}秒", Fore.GREEN, Style.BRIGHT)
-
-        return self.results
 
     def calculate_overall_statistics(self) -> Dict:
         """计算总体统计信息"""
@@ -727,40 +608,7 @@ def print_summary_table(results: List[Dict], num_tests: int, domains: List[str])
     table_data.sort(key=sort_key)
 
     # 打印表格
-    if USE_PRETTYTABLE:
-        table = PrettyTable()
-        table.field_names = ["DNS服务器", "平均耗时", "最短耗时", "最长耗时", "成功率", "可用域名"]
-        table.align["DNS服务器"] = "l"
-        table.align["平均耗时"] = "r"
-        table.align["最短耗时"] = "r"
-        table.align["最长耗时"] = "r"
-        table.align["成功率"] = "r"
-        table.align["可用域名"] = "r"
-
-        for row in table_data:
-            if row['avg_time'] is not None:
-                avg_str = f"{row['avg_time']*1000:.1f}ms"
-                min_str = f"{row['min_time']*1000:.1f}ms"
-                max_str = f"{row['max_time']*1000:.1f}ms"
-                color = Fore.GREEN if row['success_rate'] >= 80 else Fore.YELLOW if row['success_rate'] >= 50 else Fore.RED
-            else:
-                avg_str = "❌ 失败"
-                min_str = "❌"
-                max_str = "❌"
-                color = Fore.RED
-
-            table.add_row([
-                row['dns_server'],
-                avg_str,
-                min_str,
-                max_str,
-                f"{row['success_rate']:.1f}%",
-                f"{row['successful_domains']}/{row['total_domains']}"
-            ])
-
-        print(table.get_string())
-
-    elif HAS_TABULATE:
+    if HAS_TABULATE:
         # 使用tabulate输出表格
         headers = ["DNS服务器", "平均耗时", "最短耗时", "最长耗时", "成功率", "可用域名"]
         rows = []
@@ -787,24 +635,26 @@ def print_summary_table(results: List[Dict], num_tests: int, domains: List[str])
         print(tabulate(rows, headers=headers, tablefmt="grid"))
 
     else:
-        # 简单的文本表格
-        print_colored(f"{'DNS服务器':<20} {'平均耗时':<12} {'最短耗时':<12} {'最长耗时':<12} {'成功率':<10} {'可用域名':<10}", Fore.WHITE)
-        print_colored("-" * 90, Fore.WHITE)
+        # tabulate 不可用，提示用户安装
+        print_colored("="*70, Fore.YELLOW)
+        print_colored("警告: 缺少表格输出模块", Fore.YELLOW, Style.BRIGHT)
+        print_colored("="*70, Fore.YELLOW)
+        print_colored("\n未找到模块: tabulate", Fore.YELLOW)
+        print_colored("\n请安装所需模块:", Fore.CYAN)
+        print_colored("  pip install tabulate", Fore.GREEN)
+        print_colored("\n安装后重新运行程序以获得更好的表格显示效果。", Fore.CYAN)
+
+        # 仍然显示简单的结果摘要
+        print_colored("\n" + "="*90, Fore.CYAN)
+        print_colored("测试结果摘要:", Fore.CYAN, Style.BRIGHT)
+        print_colored("="*90, Fore.CYAN)
 
         for row in table_data:
             if row['avg_time'] is not None:
-                avg_str = f"{row['avg_time']*1000:.1f}ms"
-                min_str = f"{row['min_time']*1000:.1f}ms"
-                max_str = f"{row['max_time']*1000:.1f}ms"
-                color = Fore.GREEN if row['success_rate'] >= 80 else Fore.YELLOW if row['success_rate'] >= 50 else Fore.RED
+                print_colored(f"{row['dns_server']}: 平均 {row['avg_time']*1000:.1f}ms, 成功率 {row['success_rate']:.1f}%",
+                            Fore.GREEN if row['success_rate'] >= 80 else Fore.YELLOW if row['success_rate'] >= 50 else Fore.RED)
             else:
-                avg_str = "失败"
-                min_str = "-"
-                max_str = "-"
-                color = Fore.RED
-
-            print_colored(f"{row['dns_server']:<20} {avg_str:<12} {min_str:<12} {max_str:<12} "
-                         f"{row['success_rate']:<10.1f}% {row['successful_domains']}/{row['total_domains']:<10}", color)
+                print_colored(f"{row['dns_server']}: ❌ 失败", Fore.RED)
 
     # 打印推荐
     print_colored("\n" + "="*90, Fore.CYAN)
@@ -881,11 +731,8 @@ async def async_main():
   # 测试国内常用DNS
   python run-kimi.py -d 223.5.5.5 114.114.114.114 119.29.29.29 -n taobao.com jd.com
 
-  # 使用同步模式（如果aiodns不可用）
-  python run-kimi.py -d 8.8.8.8 1.1.1.1 -n google.com --sync
-
-  # 设置重试次数
-  python run-kimi.py -d 8.8.8.8 1.1.1.1 -n google.com --retries 3
+  # 设置重试次数（当网络不稳定时）
+  python run-kimi.py -d 8.8.8.8 1.1.1.1 -n google.com --retries 2
         '''
     )
 
@@ -926,11 +773,6 @@ async def async_main():
         help='查询失败时的重试次数 (默认: 1)'
     )
 
-    parser.add_argument(
-        '--sync',
-        action='store_true',
-        help='强制使用同步模式（即使aiodns可用）'
-    )
 
     parser.add_argument(
         '--no-color',
@@ -995,18 +837,16 @@ async def async_main():
     print_colored(f"⏱️  超时设置: {args.timeout} 秒", Fore.WHITE)
     print_colored(f"🔄 重试次数: {args.retries} 次", Fore.WHITE)
 
-    if args.sync:
-        print_colored("⚡ 模式: 同步模式（强制）", Fore.YELLOW)
-    elif HAS_AIODNS:
+    if HAS_AIODNS:
         print_colored("⚡ 模式: 异步模式", Fore.GREEN)
     else:
-        print_colored("⚡ 模式: 同步模式（aiodns不可用）", Fore.YELLOW)
+        print_colored("⚡ 模式: 异步模式不可用（需要安装aiodns）", Fore.RED)
 
     print_colored("-"*90, Fore.WHITE)
 
     # 创建并配置DNSBenchmark实例
     benchmark = DNSBenchmark(
-        use_async=not args.sync and HAS_AIODNS,
+        use_async=HAS_AIODNS,
         retries=args.retries
     )
 
@@ -1022,7 +862,9 @@ async def async_main():
         if benchmark.use_async:
             results = await benchmark.run_async()
         else:
-            results = benchmark.run_sync()
+            print_colored("错误: aiodns 模块不可用，无法进行DNS测试", Fore.RED)
+            print_colored("请安装 aiodns 模块: pip install aiodns", Fore.YELLOW)
+            sys.exit(1)
 
         # 打印汇总表格
         print_summary_table(results, args.tests, args.names)

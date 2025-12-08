@@ -40,7 +40,7 @@ source .venv/bin/activate
 ### 使用 pip
 
 ```bash
-pip install dnspython aiodns colorama prettytable
+pip install aiodns colorama tabulate
 ```
 
 ## 快速开始
@@ -70,7 +70,6 @@ python main.py -d 223.5.5.5 114.114.114.114 119.29.29.29 -n taobao.com jd.com
 | `--tests`       | `-t` | 每个域名测试次数               | 3                        |
 | `--timeout`     | -    | DNS 查询超时时间（秒）         | 2.0                      |
 | `--retries`     | -    | 查询失败时的重试次数           | 1                        |
-| `--sync`        | -    | 强制使用同步模式               | 否                       |
 | `--no-color`    | -    | 禁用彩色输出                   | 否                       |
 | `--save-report` | -    | 保存详细报告到文件             | 否                       |
 | `--report-file` | -    | 报告文件名                     | dns_benchmark_report.txt |
@@ -164,10 +163,9 @@ dns-benchmark/
 
 ## 依赖包
 
-- **aiodns (>=3.6.0)**：异步 DNS 解析库
-- **colorama (>=0.4.6)**：跨平台彩色终端输出
-- **dnspython (>=2.8.0)**：DNS 工具包
-- **prettytable (>=3.17.0)**：美化表格输出（可选）
+- **aiodns (>=3.6.0)**：异步 DNS 解析库（必需）
+- **colorama (>=0.4.6)**：跨平台彩色终端输出（必需）
+- **tabulate (>=0.9.0)**：表格输出（必需）
 
 ## 故障排除
 
@@ -179,17 +177,16 @@ dns-benchmark/
    uv sync
 
    # 或手动安装
-   pip install dnspython aiodns colorama prettytable
+   pip install aiodns colorama tabulate
    ```
 
 2. **异步模式不可用**：
    ```bash
    # 确保aiodns已安装
    pip install aiodns
-
-   # 或强制使用同步模式
-   python main.py -d 8.8.8.8 -n google.com --sync
    ```
+
+   注意：本工具仅支持异步模式，需要 aiodns 模块才能运行。
 
 3. **DNS 查询超时**：
    - 检查网络连接
