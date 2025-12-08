@@ -302,7 +302,6 @@ dns-benchmark/
 如有问题或建议：
 
 - 提交 [Issue](https://github.com/yourusername/dns-benchmark/issues)
-- 邮箱：your-email@example.com
 
 ---
 

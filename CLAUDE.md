@@ -29,8 +29,9 @@
 ### 系统要求
 
 - Python 3.13 或更高版本
-- Windows 10/11 或 Linux 系统
+- uv 包管理器
 - 网络连接（用于 DNS 查询测试）
+- Windows 10/11 或 Linux 系统
 
 ### 环境配置步骤
 
@@ -53,7 +54,7 @@
 
    # 激活虚拟环境
    # Windows
-   .venv\Scripts\activate
+   .venv\\Scripts\\activate
    # Linux/macOS
    source .venv/bin/activate
    ```
@@ -76,12 +77,11 @@
 ```plain
 dns-benchmark/
 ├── LICENSE              # MIT 授权文件
-├── README.md           # 用户文档
+├── README.md           # 项目说明文档
 ├── CLAUDE.md           # 开发指南
 ├── main.py              # 主程序文件
 ├── pyproject.toml       # 项目配置和依赖声明
 ├── uv.lock              # UV锁文件（依赖版本锁定）
-├── README.md            # 项目说明文档
 └── logs/                # 测试结果日志目录
     └── dns_benchmark_details.txt  # 详细测试报告示例
 ```
@@ -100,12 +100,7 @@ dns-benchmark/
    - `async_test_dns_server()`：异步测试单个 DNS 服务器
    - `async_test_all_dns_servers()`：并发测试所有 DNS 服务器
 
-3. **同步解析函数**：
-
-   - `resolve_domain()`：同步 DNS 解析（向后兼容）
-   - `test_dns_server()`：同步测试单个 DNS 服务器
-
-4. **辅助功能**：
+3. **辅助功能**：
    - `print_summary_table()`：打印汇总结果表格
    - 彩色输出、进度条、时间格式化等工具函数
 
@@ -285,6 +280,10 @@ python main.py -d 8.8.8.8 1.1.1.1 223.5.5.5 -n baidu.com github.com \
    - 未启用 HTTP 测试时：按 DNS 平均响应时间升序排序
    - 成功率低于 50%的服务器不参与推荐
    - None 值（完全失败）排在最后
+
+### Git 提交规范
+
+遵循 `Conventional Commits` 规范，详见 https://www.conventionalcommits.org/
 
 ### 扩展开发建议
 
