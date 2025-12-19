@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import sys
 import io
+import os
 import platform
 import time
 import statistics
@@ -158,14 +159,14 @@ def format_time(seconds: float) -> str:
         return "失败"
     if seconds == float("inf"):
         return "∞"
-    return f"{seconds*1000:.1f}ms"
+    return f"{seconds * 1000:.1f}ms"
 
 
 def get_progress_bar(progress: float, width: int = 30) -> str:
     """获取进度条字符串"""
     filled = int(progress * width)
     bar = "█" * filled + "░" * (width - filled)
-    return f"[{bar}] {progress*100:.1f}%"
+    return f"[{bar}] {progress * 100:.1f}%"
 
 
 # 检查必需依赖
@@ -258,7 +259,7 @@ async def _async_resolve_aiodns(
 
             except asyncio.TimeoutError:
                 error_msg = (
-                    f"超时 (尝试 {attempt+1}/{retries}): {domain} @ {dns_server}"
+                    f"超时 (尝试 {attempt + 1}/{retries}): {domain} @ {dns_server}"
                 )
                 print_colored(f"  {error_msg}", Fore.YELLOW)
                 last_error = {
@@ -367,7 +368,7 @@ async def async_test_dns_server(
         domain_times = []
         all_ips = set()  # 收集所有解析到的IP地址
         print_colored(
-            f"  📡 域名 {domain_idx+1}/{len(domains)}: {domain}",
+            f"  📡 域名 {domain_idx + 1}/{len(domains)}: {domain}",
             Fore.WHITE,
             end="",
             flush=True,
@@ -409,7 +410,7 @@ async def async_test_dns_server(
                         elapsed = result["elapsed"]
                         ips = result.get("ips", [])
                         print_colored(
-                            f" {elapsed*1000:.1f}ms", Fore.GREEN, end="", flush=True
+                            f" {elapsed * 1000:.1f}ms", Fore.GREEN, end="", flush=True
                         )
                         domain_times.append(elapsed)
 
@@ -474,10 +475,12 @@ async def async_test_dns_server(
             color = (
                 Fore.GREEN
                 if stats["success_rate"] >= 80
-                else Fore.YELLOW if stats["success_rate"] >= 50 else Fore.RED
+                else Fore.YELLOW
+                if stats["success_rate"] >= 50
+                else Fore.RED
             )
             print_colored(
-                f"   | 平均: {stats['avg']*1000:.1f}ms, 成功率: {stats['success_rate']:.1f}%",
+                f"   | 平均: {stats['avg'] * 1000:.1f}ms, 成功率: {stats['success_rate']:.1f}%",
                 color,
             )
         else:
@@ -537,16 +540,16 @@ async def async_test_dns_server(
 
                 # 将HTTP测试结果存储到对应域名的统计中
                 if domain in results["domain_stats"]:
-                    results["domain_stats"][domain]["http_stats"][
-                        ip_address
-                    ] = http_result
+                    results["domain_stats"][domain]["http_stats"][ip_address] = (
+                        http_result
+                    )
 
                     # 显示HTTP测试结果
                     if http_result.get("success"):
                         total_time = http_result.get("total_time")
                         if total_time:
                             print_colored(
-                                f"  ✅ {domain} @ {ip_address}: {total_time*1000:.1f}ms, "
+                                f"  ✅ {domain} @ {ip_address}: {total_time * 1000:.1f}ms, "
                                 f"大小: {http_result.get('data_size', 0)} bytes",
                                 Fore.GREEN,
                             )
@@ -677,10 +680,14 @@ async def async_test_http_performance(
                         if response.status in (301, 302, 303, 307, 308):
                             location = response.headers.get("Location")
                             if not location:
-                                raise HTTPRedirectError(f"重定向响应缺少Location头: {response.status}")
+                                raise HTTPRedirectError(
+                                    f"重定向响应缺少Location头: {response.status}"
+                                )
                             # 检测重定向循环
                             if current_url in redirects:
-                                raise HTTPRedirectError(f"检测到重定向循环: {current_url}")
+                                raise HTTPRedirectError(
+                                    f"检测到重定向循环: {current_url}"
+                                )
                             redirects.append(current_url)
                             # 使用urljoin正确处理相对路径重定向
                             current_url = urljoin(current_url, location)
@@ -978,21 +985,26 @@ class DNSBenchmark:
             (
                 Fore.GREEN
                 if stats["success_rate"] >= 80
-                else Fore.YELLOW if stats["success_rate"] >= 50 else Fore.RED
+                else Fore.YELLOW
+                if stats["success_rate"] >= 50
+                else Fore.RED
             ),
         )
 
         if stats["overall_avg"] is not None:
             print_colored(
-                f"   平均响应时间: {stats['overall_avg']*1000:.1f}ms", Fore.WHITE
+                f"   平均响应时间: {stats['overall_avg'] * 1000:.1f}ms", Fore.WHITE
             )
-            print_colored(f"   最快响应: {stats['overall_min']*1000:.1f}ms", Fore.GREEN)
             print_colored(
-                f"   最慢响应: {stats['overall_max']*1000:.1f}ms", Fore.YELLOW
+                f"   最快响应: {stats['overall_min'] * 1000:.1f}ms", Fore.GREEN
+            )
+            print_colored(
+                f"   最慢响应: {stats['overall_max'] * 1000:.1f}ms", Fore.YELLOW
             )
             if stats["overall_std"] is not None:
                 print_colored(
-                    f"   响应时间标准差: {stats['overall_std']*1000:.1f}ms", Fore.WHITE
+                    f"   响应时间标准差: {stats['overall_std'] * 1000:.1f}ms",
+                    Fore.WHITE,
                 )
 
         print_colored(f"   总测试时间: {stats['total_time']:.2f}秒", Fore.WHITE)
@@ -1041,27 +1053,27 @@ class DNSBenchmark:
 
             if error_stats["timeout"] > 0:
                 print_colored(
-                    f"   超时错误: {error_stats['timeout']} ({error_stats['timeout']/total_errors*100:.1f}%)",
+                    f"   超时错误: {error_stats['timeout']} ({error_stats['timeout'] / total_errors * 100:.1f}%)",
                     Fore.YELLOW,
                 )
             if error_stats["nxdomain"] > 0:
                 print_colored(
-                    f"   域名不存在: {error_stats['nxdomain']} ({error_stats['nxdomain']/total_errors*100:.1f}%)",
+                    f"   域名不存在: {error_stats['nxdomain']} ({error_stats['nxdomain'] / total_errors * 100:.1f}%)",
                     Fore.YELLOW,
                 )
             if error_stats["no_answer"] > 0:
                 print_colored(
-                    f"   无应答错误: {error_stats['no_answer']} ({error_stats['no_answer']/total_errors*100:.1f}%)",
+                    f"   无应答错误: {error_stats['no_answer']} ({error_stats['no_answer'] / total_errors * 100:.1f}%)",
                     Fore.YELLOW,
                 )
             if error_stats["network"] > 0:
                 print_colored(
-                    f"   网络错误: {error_stats['network']} ({error_stats['network']/total_errors*100:.1f}%)",
+                    f"   网络错误: {error_stats['network']} ({error_stats['network'] / total_errors * 100:.1f}%)",
                     Fore.RED,
                 )
             if error_stats["other"] > 0:
                 print_colored(
-                    f"   其他错误: {error_stats['other']} ({error_stats['other']/total_errors*100:.1f}%)",
+                    f"   其他错误: {error_stats['other']} ({error_stats['other'] / total_errors * 100:.1f}%)",
                     Fore.RED,
                 )
 
@@ -1195,20 +1207,24 @@ class DNSBenchmark:
             server_error_count = sum(server_errors.values())
 
             # 添加到表格数据
-            server_http_stats.append({
-                "dns_server": dns_server,
-                "total_ips": total_ips_server,
-                "tested_ips": tested_ips_server,
-                "successful_ips": successful_ips_server,
-                "failed_ips": failed_ips_server,
-                "success_rate": server_success_rate,
-                "avg_http_time": server_avg_http_time,
-                "avg_conn_time": server_avg_conn_time,
-                "avg_ttfb": server_avg_ttfb,
-                "data_size_mb": server_data_size / (1024 * 1024) if server_data_size > 0 else 0,
-                "error_count": server_error_count,
-                "errors": server_errors,
-            })
+            server_http_stats.append(
+                {
+                    "dns_server": dns_server,
+                    "total_ips": total_ips_server,
+                    "tested_ips": tested_ips_server,
+                    "successful_ips": successful_ips_server,
+                    "failed_ips": failed_ips_server,
+                    "success_rate": server_success_rate,
+                    "avg_http_time": server_avg_http_time,
+                    "avg_conn_time": server_avg_conn_time,
+                    "avg_ttfb": server_avg_ttfb,
+                    "data_size_mb": (
+                        server_data_size / (1024 * 1024) if server_data_size > 0 else 0
+                    ),
+                    "error_count": server_error_count,
+                    "errors": server_errors,
+                }
+            )
 
         # 显示总体统计
         print_colored("\n📈 HTTP总体统计:", Fore.WHITE)
@@ -1222,7 +1238,9 @@ class DNSBenchmark:
             color = (
                 Fore.GREEN
                 if success_rate >= 80
-                else Fore.YELLOW if success_rate >= 50 else Fore.RED
+                else Fore.YELLOW
+                if success_rate >= 50
+                else Fore.RED
             )
             print_colored(f"   HTTP成功率: {success_rate:.1f}%", color)
 
@@ -1232,17 +1250,17 @@ class DNSBenchmark:
             min_http_time = min(http_times)
             max_http_time = max(http_times)
             print_colored("\n⏱️  HTTP时间统计:", Fore.WHITE)
-            print_colored(f"   平均总时间: {avg_http_time*1000:.1f}ms", Fore.WHITE)
-            print_colored(f"   最短总时间: {min_http_time*1000:.1f}ms", Fore.GREEN)
-            print_colored(f"   最长总时间: {max_http_time*1000:.1f}ms", Fore.YELLOW)
+            print_colored(f"   平均总时间: {avg_http_time * 1000:.1f}ms", Fore.WHITE)
+            print_colored(f"   最短总时间: {min_http_time * 1000:.1f}ms", Fore.GREEN)
+            print_colored(f"   最长总时间: {max_http_time * 1000:.1f}ms", Fore.YELLOW)
 
         if connection_times:
             avg_conn_time = statistics.mean(connection_times)
-            print_colored(f"   平均连接时间: {avg_conn_time*1000:.1f}ms", Fore.WHITE)
+            print_colored(f"   平均连接时间: {avg_conn_time * 1000:.1f}ms", Fore.WHITE)
 
         if ttfb_times:
             avg_ttfb_time = statistics.mean(ttfb_times)
-            print_colored(f"   平均TTFB: {avg_ttfb_time*1000:.1f}ms", Fore.WHITE)
+            print_colored(f"   平均TTFB: {avg_ttfb_time * 1000:.1f}ms", Fore.WHITE)
 
         if total_data_size > 0:
             data_size_mb = total_data_size / (1024 * 1024)
@@ -1257,21 +1275,39 @@ class DNSBenchmark:
                 table_data = []
                 for stats in server_http_stats:
                     # 格式化时间数据
-                    avg_http_str = f"{stats['avg_http_time']*1000:.1f}ms" if stats['avg_http_time'] is not None else "-"
-                    avg_conn_str = f"{stats['avg_conn_time']*1000:.1f}ms" if stats['avg_conn_time'] is not None else "-"
-                    avg_ttfb_str = f"{stats['avg_ttfb']*1000:.1f}ms" if stats['avg_ttfb'] is not None else "-"
+                    avg_http_str = (
+                        f"{stats['avg_http_time'] * 1000:.1f}ms"
+                        if stats["avg_http_time"] is not None
+                        else "-"
+                    )
+                    avg_conn_str = (
+                        f"{stats['avg_conn_time'] * 1000:.1f}ms"
+                        if stats["avg_conn_time"] is not None
+                        else "-"
+                    )
+                    avg_ttfb_str = (
+                        f"{stats['avg_ttfb'] * 1000:.1f}ms"
+                        if stats["avg_ttfb"] is not None
+                        else "-"
+                    )
 
-                    table_data.append([
-                        stats['dns_server'],
-                        f"{stats['total_ips']}",
-                        f"{stats['successful_ips']}/{stats['failed_ips']}",
-                        f"{stats['success_rate']:.1f}%",
-                        avg_http_str,
-                        avg_conn_str,
-                        avg_ttfb_str,
-                        f"{stats['data_size_mb']:.2f} MB" if stats['data_size_mb'] > 0 else "-",
-                        f"{stats['error_count']}",
-                    ])
+                    table_data.append(
+                        [
+                            stats["dns_server"],
+                            f"{stats['total_ips']}",
+                            f"{stats['successful_ips']}/{stats['failed_ips']}",
+                            f"{stats['success_rate']:.1f}%",
+                            avg_http_str,
+                            avg_conn_str,
+                            avg_ttfb_str,
+                            (
+                                f"{stats['data_size_mb']:.2f} MB"
+                                if stats["data_size_mb"] > 0
+                                else "-"
+                            ),
+                            f"{stats['error_count']}",
+                        ]
+                    )
 
                 headers = [
                     "DNS服务器",
@@ -1289,7 +1325,14 @@ class DNSBenchmark:
             else:
                 print_colored("  警告: tabulate模块不可用，无法显示表格", Fore.YELLOW)
                 for stats in server_http_stats:
-                    print_colored(f"  {stats['dns_server']}: {stats['successful_ips']}成功/{stats['failed_ips']}失败, 成功率: {stats['success_rate']:.1f}%, 平均时间: {stats['avg_http_time']*1000:.1f}ms" if stats['avg_http_time'] is not None else f"  {stats['dns_server']}: {stats['successful_ips']}成功/{stats['failed_ips']}失败, 成功率: {stats['success_rate']:.1f}%", Fore.WHITE)
+                    print_colored(
+                        (
+                            f"  {stats['dns_server']}: {stats['successful_ips']}成功/{stats['failed_ips']}失败, 成功率: {stats['success_rate']:.1f}%, 平均时间: {stats['avg_http_time'] * 1000:.1f}ms"
+                            if stats["avg_http_time"] is not None
+                            else f"  {stats['dns_server']}: {stats['successful_ips']}成功/{stats['failed_ips']}失败, 成功率: {stats['success_rate']:.1f}%"
+                        ),
+                        Fore.WHITE,
+                    )
 
         # 显示错误统计表格
         total_errors = sum(http_error_stats.values())
@@ -1311,11 +1354,13 @@ class DNSBenchmark:
                             "other": "其他错误",
                         }.get(error_type, error_type)
 
-                        error_table_data.append([
-                            error_type_name,
-                            f"{count}",
-                            f"{percentage:.1f}%",
-                        ])
+                        error_table_data.append(
+                            [
+                                error_type_name,
+                                f"{count}",
+                                f"{percentage:.1f}%",
+                            ]
+                        )
 
                 if error_table_data:
                     headers = ["错误类型", "数量", "占比"]
@@ -1348,9 +1393,16 @@ class DNSBenchmark:
                             f"   {error_type_name}: {count} ({percentage:.1f}%)", color
                         )
 
-    def save_results_to_file(self, filename: str = "dns_benchmark_report.txt") -> bool:
+    def save_results_to_file(
+        self, filename: str = "logs/dns_benchmark_report.txt"
+    ) -> bool:
         """保存结果到文件"""
         try:
+            # 确保文件所在目录存在
+            file_dir = os.path.dirname(filename)
+            if file_dir and not os.path.exists(file_dir):
+                os.makedirs(file_dir, exist_ok=True)
+
             with open(filename, "w", encoding="utf-8") as f:
                 f.write("DNS性能测试详细报告\n")
                 f.write("=" * 90 + "\n")
@@ -1360,7 +1412,9 @@ class DNSBenchmark:
                 f.write(f"每个域名测试次数: {self.num_tests}\n")
                 f.write(f"超时设置: {self.timeout}秒\n")
                 f.write("使用异步模式: 是\n")
-                f.write(f"HTTP性能测试: {'已启用' if self.enable_http_test else '未启用'}\n")
+                f.write(
+                    f"HTTP性能测试: {'已启用' if self.enable_http_test else '未启用'}\n"
+                )
                 if self.enable_http_test:
                     f.write(f"  HTTP超时: {self.http_timeout}秒\n")
                     f.write(f"  最大HTTP并发数: {self.max_http_concurrency}\n")
@@ -1375,12 +1429,12 @@ class DNSBenchmark:
                 f.write(f"  成功查询: {stats['successful_queries']}\n")
                 f.write(f"  成功率: {stats['success_rate']:.1f}%\n")
                 if stats["overall_avg"] is not None:
-                    f.write(f"  平均响应时间: {stats['overall_avg']*1000:.1f}ms\n")
-                    f.write(f"  最快响应: {stats['overall_min']*1000:.1f}ms\n")
-                    f.write(f"  最慢响应: {stats['overall_max']*1000:.1f}ms\n")
+                    f.write(f"  平均响应时间: {stats['overall_avg'] * 1000:.1f}ms\n")
+                    f.write(f"  最快响应: {stats['overall_min'] * 1000:.1f}ms\n")
+                    f.write(f"  最慢响应: {stats['overall_max'] * 1000:.1f}ms\n")
                     if stats["overall_std"] is not None:
                         f.write(
-                            f"  响应时间标准差: {stats['overall_std']*1000:.1f}ms\n"
+                            f"  响应时间标准差: {stats['overall_std'] * 1000:.1f}ms\n"
                         )
                 f.write(f"  总测试时间: {stats['total_time']:.2f}秒\n\n")
 
@@ -1392,16 +1446,16 @@ class DNSBenchmark:
                     for domain, domain_stats in result["domain_stats"].items():
                         f.write(f"  域名: {domain}\n")
                         if domain_stats["avg"] is not None:
-                            f.write(f"    平均: {domain_stats['avg']*1000:.2f}ms\n")
-                            f.write(f"    最短: {domain_stats['min']*1000:.2f}ms\n")
-                            f.write(f"    最长: {domain_stats['max']*1000:.2f}ms\n")
-                            f.write(f"    标准差: {domain_stats['std']*1000:.2f}ms\n")
+                            f.write(f"    平均: {domain_stats['avg'] * 1000:.2f}ms\n")
+                            f.write(f"    最短: {domain_stats['min'] * 1000:.2f}ms\n")
+                            f.write(f"    最长: {domain_stats['max'] * 1000:.2f}ms\n")
+                            f.write(f"    标准差: {domain_stats['std'] * 1000:.2f}ms\n")
                             f.write(
                                 f"    成功率: {domain_stats['success_rate']:.1f}%\n"
                             )
                             times_str = ", ".join(
                                 [
-                                    f"{t*1000:.1f}ms" if t is not None else "失败"
+                                    f"{t * 1000:.1f}ms" if t is not None else "失败"
                                     for t in domain_stats["times"]
                                 ]
                             )
@@ -1423,15 +1477,25 @@ class DNSBenchmark:
                                         status_code = http_result.get("status_code")
 
                                         f.write(f"      IP地址: {ip_address}\n")
-                                        f.write(f"        状态: 成功 (HTTP {status_code})\n")
+                                        f.write(
+                                            f"        状态: 成功 (HTTP {status_code})\n"
+                                        )
                                         if total_time is not None:
-                                            f.write(f"        总时间: {total_time*1000:.1f}ms\n")
+                                            f.write(
+                                                f"        总时间: {total_time * 1000:.1f}ms\n"
+                                            )
                                         if conn_time is not None:
-                                            f.write(f"        连接时间: {conn_time*1000:.1f}ms\n")
+                                            f.write(
+                                                f"        连接时间: {conn_time * 1000:.1f}ms\n"
+                                            )
                                         if ttfb_time is not None:
-                                            f.write(f"        TTFB: {ttfb_time*1000:.1f}ms\n")
+                                            f.write(
+                                                f"        TTFB: {ttfb_time * 1000:.1f}ms\n"
+                                            )
                                         if data_size is not None:
-                                            f.write(f"        数据大小: {data_size} 字节\n")
+                                            f.write(
+                                                f"        数据大小: {data_size} 字节\n"
+                                            )
                                     else:
                                         error_msg = http_result.get("error", "未知错误")
                                         f.write(f"      IP地址: {ip_address}\n")
@@ -1651,9 +1715,9 @@ def print_summary_table(
 
         for row in table_data:
             if row["avg_time"] is not None:
-                avg_str = f"{row['avg_time']*1000:.1f}ms"
-                min_str = f"{row['min_time']*1000:.1f}ms"
-                max_str = f"{row['max_time']*1000:.1f}ms"
+                avg_str = f"{row['avg_time'] * 1000:.1f}ms"
+                min_str = f"{row['min_time'] * 1000:.1f}ms"
+                max_str = f"{row['max_time'] * 1000:.1f}ms"
             else:
                 avg_str = "失败"
                 min_str = "-"
@@ -1667,7 +1731,7 @@ def print_summary_table(
                     http_avg_time = http_stats.get("avg_total_time")
 
                     if http_avg_time is not None:
-                        http_avg_str = f"{http_avg_time*1000:.1f}ms"
+                        http_avg_str = f"{http_avg_time * 1000:.1f}ms"
                     else:
                         http_avg_str = "-"
 
@@ -1742,7 +1806,7 @@ def print_summary_table(
                         http_avg_time = http_stats.get("avg_total_time")
 
                         if http_avg_time is not None:
-                            http_str = f", HTTP: {http_avg_time*1000:.1f}ms ({http_success_rate:.1f}%), 综合: {combined_score:.3f}"
+                            http_str = f", HTTP: {http_avg_time * 1000:.1f}ms ({http_success_rate:.1f}%), 综合: {combined_score:.3f}"
                         else:
                             http_str = f", HTTP: - ({http_success_rate:.1f}%), 综合: {combined_score:.3f}"
                     elif http_stats and http_stats.get("enabled"):
@@ -1752,20 +1816,24 @@ def print_summary_table(
                         http_str = ", HTTP: 未测试"
 
                     print_colored(
-                        f"{row['dns_server']}: DNS: {row['avg_time']*1000:.1f}ms ({row['success_rate']:.1f}%){http_str}",
+                        f"{row['dns_server']}: DNS: {row['avg_time'] * 1000:.1f}ms ({row['success_rate']:.1f}%){http_str}",
                         (
                             Fore.GREEN
                             if row["success_rate"] >= 80
-                            else Fore.YELLOW if row["success_rate"] >= 50 else Fore.RED
+                            else Fore.YELLOW
+                            if row["success_rate"] >= 50
+                            else Fore.RED
                         ),
                     )
                 else:
                     print_colored(
-                        f"{row['dns_server']}: 平均 {row['avg_time']*1000:.1f}ms, 成功率 {row['success_rate']:.1f}%",
+                        f"{row['dns_server']}: 平均 {row['avg_time'] * 1000:.1f}ms, 成功率 {row['success_rate']:.1f}%",
                         (
                             Fore.GREEN
                             if row["success_rate"] >= 80
-                            else Fore.YELLOW if row["success_rate"] >= 50 else Fore.RED
+                            else Fore.YELLOW
+                            if row["success_rate"] >= 50
+                            else Fore.RED
                         ),
                     )
             else:
@@ -1821,27 +1889,27 @@ def print_summary_table(
                     if http_avg_time is not None:
                         print_colored(
                             f"{i}. {row['dns_server']} - 综合得分: {combined_score:.3f}, "
-                            f"DNS: {row['avg_time']*1000:.1f}ms ({row['success_rate']:.1f}%), "
-                            f"HTTP: {http_avg_time*1000:.1f}ms ({http_success_rate:.1f}%)",
+                            f"DNS: {row['avg_time'] * 1000:.1f}ms ({row['success_rate']:.1f}%), "
+                            f"HTTP: {http_avg_time * 1000:.1f}ms ({http_success_rate:.1f}%)",
                             color,
                         )
                     else:
                         print_colored(
                             f"{i}. {row['dns_server']} - 综合得分: {combined_score:.3f}, "
-                            f"DNS: {row['avg_time']*1000:.1f}ms ({row['success_rate']:.1f}%), "
+                            f"DNS: {row['avg_time'] * 1000:.1f}ms ({row['success_rate']:.1f}%), "
                             f"HTTP: - ({http_success_rate:.1f}%)",
                             color,
                         )
                 else:
                     # 有DNS数据但没有HTTP测试数据或综合得分
                     print_colored(
-                        f"{i}. {row['dns_server']} - DNS: {row['avg_time']*1000:.1f}ms, 成功率 {row['success_rate']:.1f}% (无HTTP测试数据)",
+                        f"{i}. {row['dns_server']} - DNS: {row['avg_time'] * 1000:.1f}ms, 成功率 {row['success_rate']:.1f}% (无HTTP测试数据)",
                         color,
                     )
             else:
                 # 仅DNS模式
                 print_colored(
-                    f"{i}. {row['dns_server']} - 平均 {row['avg_time']*1000:.1f}ms, 成功率 {row['success_rate']:.1f}%",
+                    f"{i}. {row['dns_server']} - 平均 {row['avg_time'] * 1000:.1f}ms, 成功率 {row['success_rate']:.1f}%",
                     color,
                 )
             recommendations += 1
@@ -1858,7 +1926,13 @@ def print_summary_table(
 
     # 打印详细数据到文件（可选）
     try:
-        with open("logs/dns_benchmark_details.txt", "w", encoding="utf-8") as f:
+        log_file = "logs/dns_benchmark_details.txt"
+        # 确保logs目录存在
+        log_dir = os.path.dirname(log_file)
+        if log_dir and not os.path.exists(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
+
+        with open(log_file, "w", encoding="utf-8") as f:
             f.write("DNS性能测试详细报告\n")
             f.write("=" * 90 + "\n")
             f.write(f"测试时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -1874,11 +1948,11 @@ def print_summary_table(
                 for domain, stats in result["domain_stats"].items():
                     f.write(f"  域名: {domain}\n")
                     if stats.get("avg") is not None:
-                        f.write(f"    平均: {stats['avg']*1000:.2f}ms\n")
-                        f.write(f"    最短: {stats['min']*1000:.2f}ms\n")
-                        f.write(f"    最长: {stats['max']*1000:.2f}ms\n")
+                        f.write(f"    平均: {stats['avg'] * 1000:.2f}ms\n")
+                        f.write(f"    最短: {stats['min'] * 1000:.2f}ms\n")
+                        f.write(f"    最长: {stats['max'] * 1000:.2f}ms\n")
                         if "std" in stats and stats["std"] is not None:
-                            f.write(f"    标准差: {stats['std']*1000:.2f}ms\n")
+                            f.write(f"    标准差: {stats['std'] * 1000:.2f}ms\n")
                         if "success_rate" in stats:
                             f.write(f"    成功率: {stats['success_rate']:.1f}%\n")
 
@@ -1886,7 +1960,7 @@ def print_summary_table(
                         times_details = []
                         for t in stats["times"]:
                             if t is not None:
-                                times_details.append(f"{t*1000:.1f}ms")
+                                times_details.append(f"{t * 1000:.1f}ms")
                             else:
                                 times_details.append("失败")
                         f.write(f"    详情: [{', '.join(times_details)}]\n")
@@ -1907,13 +1981,21 @@ def print_summary_table(
                                     status_code = http_result.get("status_code")
 
                                     f.write(f"      IP地址: {ip_address}\n")
-                                    f.write(f"        状态: 成功 (HTTP {status_code})\n")
+                                    f.write(
+                                        f"        状态: 成功 (HTTP {status_code})\n"
+                                    )
                                     if total_time is not None:
-                                        f.write(f"        总时间: {total_time*1000:.1f}ms\n")
+                                        f.write(
+                                            f"        总时间: {total_time * 1000:.1f}ms\n"
+                                        )
                                     if conn_time is not None:
-                                        f.write(f"        连接时间: {conn_time*1000:.1f}ms\n")
+                                        f.write(
+                                            f"        连接时间: {conn_time * 1000:.1f}ms\n"
+                                        )
                                     if ttfb_time is not None:
-                                        f.write(f"        TTFB: {ttfb_time*1000:.1f}ms\n")
+                                        f.write(
+                                            f"        TTFB: {ttfb_time * 1000:.1f}ms\n"
+                                        )
                                     if data_size is not None:
                                         f.write(f"        数据大小: {data_size} 字节\n")
                                 else:
@@ -1924,9 +2006,7 @@ def print_summary_table(
 
                     f.write("\n")
 
-        print_colored(
-            "\n📄 详细测试数据已保存到: logs/dns_benchmark_details.txt", Fore.GREEN
-        )
+        print_colored(f"\n📄 详细测试数据已保存到: {log_file}", Fore.GREEN)
     except Exception as e:
         print_colored(f"\n⚠️  无法保存详细数据到文件: {e}", Fore.YELLOW)
 
@@ -2016,8 +2096,8 @@ async def async_main():
     parser.add_argument(
         "--report-file",
         type=str,
-        default="dns_benchmark_report.txt",
-        help="报告文件名 (默认: dns_benchmark_report.txt)",
+        default="logs/dns_benchmark_report.txt",
+        help="报告文件名 (默认: logs/dns_benchmark_report.txt)",
     )
 
     args = parser.parse_args()
