@@ -102,31 +102,37 @@ class DNSNetworkError(DNSQueryError):
 # HTTP测试异常类型
 class HTTPTestError(Exception):
     """HTTP测试错误基类"""
+
     pass
 
 
 class HTTPConnectionError(HTTPTestError):
     """HTTP连接错误"""
+
     pass
 
 
 class HTTPTimeoutError(HTTPTestError):
     """HTTP超时错误"""
+
     pass
 
 
 class HTTPSSLError(HTTPTestError):
     """SSL证书错误"""
+
     pass
 
 
 class HTTPRedirectError(HTTPTestError):
     """重定向错误"""
+
     pass
 
 
 class HTTPStatusCodeError(HTTPTestError):
     """HTTP状态码错误"""
+
     pass
 
 
@@ -216,7 +222,9 @@ async def _async_resolve_aiodns(
 
             # 使用asyncio.wait_for添加超时控制
             try:
-                result = await asyncio.wait_for(resolver.query(domain, "A"), timeout=timeout)
+                result = await asyncio.wait_for(
+                    resolver.query(domain, "A"), timeout=timeout
+                )
                 end_time = asyncio.get_event_loop().time()
                 elapsed = end_time - start_time
 
@@ -229,18 +237,18 @@ async def _async_resolve_aiodns(
                         if isinstance(item, str):
                             # 直接是IP地址字符串
                             ips.append(item)
-                        elif hasattr(item, 'address'):
+                        elif hasattr(item, "address"):
                             # DNSRecord对象
                             ips.append(item.address)
-                        elif hasattr(item, 'host'):
+                        elif hasattr(item, "host"):
                             # 另一种可能的属性
                             ips.append(item.host)
-                elif hasattr(result, 'answer'):
+                elif hasattr(result, "answer"):
                     # 旧版本aiodns的DNSResponse对象
                     for answer in result.answer:
-                        if hasattr(answer, 'address'):
+                        if hasattr(answer, "address"):
                             ips.append(answer.address)
-                elif hasattr(result, 'address'):
+                elif hasattr(result, "address"):
                     # 单个DNSRecord对象
                     ips.append(result.address)
 
@@ -249,9 +257,16 @@ async def _async_resolve_aiodns(
                 return {"elapsed": elapsed, "ips": ips, "error": None}
 
             except asyncio.TimeoutError:
-                error_msg = f"超时 (尝试 {attempt+1}/{retries}): {domain} @ {dns_server}"
+                error_msg = (
+                    f"超时 (尝试 {attempt+1}/{retries}): {domain} @ {dns_server}"
+                )
                 print_colored(f"  {error_msg}", Fore.YELLOW)
-                last_error = {"elapsed": None, "ips": [], "error": "TIMEOUT", "error_msg": error_msg}
+                last_error = {
+                    "elapsed": None,
+                    "ips": [],
+                    "error": "TIMEOUT",
+                    "error_msg": error_msg,
+                }
                 if attempt < retries - 1:
                     await asyncio.sleep(0.5 * (attempt + 1))  # 指数退避
                 continue
@@ -265,10 +280,17 @@ async def _async_resolve_aiodns(
                 print_colored(f"  服务器失败: {domain} @ {dns_server}", Fore.YELLOW)
                 error_type = "SERVFAIL"
             else:
-                print_colored(f"  DNS错误: {domain} @ {dns_server} - {error_msg}", Fore.RED)
+                print_colored(
+                    f"  DNS错误: {domain} @ {dns_server} - {error_msg}", Fore.RED
+                )
                 error_type = "DNS_ERROR"
 
-            last_error = {"elapsed": None, "ips": [], "error": error_type, "error_msg": error_msg}
+            last_error = {
+                "elapsed": None,
+                "ips": [],
+                "error": error_type,
+                "error_msg": error_msg,
+            }
             if attempt < retries - 1:
                 await asyncio.sleep(0.5 * (attempt + 1))
             continue
@@ -276,7 +298,12 @@ async def _async_resolve_aiodns(
         except Exception as e:
             error_msg = f"未知错误: {domain} @ {dns_server} - {str(e)}"
             print_colored(f"  {error_msg}", Fore.RED)
-            last_error = {"elapsed": None, "ips": [], "error": "UNKNOWN", "error_msg": error_msg}
+            last_error = {
+                "elapsed": None,
+                "ips": [],
+                "error": "UNKNOWN",
+                "error_msg": error_msg,
+            }
             if attempt < retries - 1:
                 await asyncio.sleep(0.5 * (attempt + 1))
             continue
@@ -305,7 +332,9 @@ async def async_test_dns_server(
     可选启用HTTP性能测试以评估DNS返回IP的实际访问速度
     """
     # HTTP测试信号量，用于控制并发数
-    http_semaphore = asyncio.Semaphore(max_http_concurrency) if enable_http_test else None
+    http_semaphore = (
+        asyncio.Semaphore(max_http_concurrency) if enable_http_test else None
+    )
 
     # 收集所有解析到的IP地址（跨所有域名）
     all_ips_across_domains = set()
@@ -315,14 +344,18 @@ async def async_test_dns_server(
         "domain_stats": {},
         "all_times": [],
         "errors": [],
-        "http_test_stats": {
-            "enabled": enable_http_test,
-            "total_ips": 0,
-            "tested_ips": 0,
-            "successful_ips": 0,
-            "failed_ips": 0,
-            "errors": [],
-        } if enable_http_test else None,
+        "http_test_stats": (
+            {
+                "enabled": enable_http_test,
+                "total_ips": 0,
+                "tested_ips": 0,
+                "successful_ips": 0,
+                "failed_ips": 0,
+                "errors": [],
+            }
+            if enable_http_test
+            else None
+        ),
     }
 
     print_colored(f"\n🔍 测试DNS服务器: {dns_server}", Fore.CYAN, Style.BRIGHT)
@@ -364,7 +397,9 @@ async def async_test_dns_server(
                     if result.get("error") is not None or result.get("elapsed") is None:
                         # DNS查询失败
                         print_colored(" ❌", Fore.RED, end="", flush=True)
-                        error_msg = result.get("error_msg", result.get("error", "未知错误"))
+                        error_msg = result.get(
+                            "error_msg", result.get("error", "未知错误")
+                        )
                         results["errors"].append(
                             {"domain": domain, "test_num": i, "error": error_msg}
                         )
@@ -412,7 +447,7 @@ async def async_test_dns_server(
                 "success_rate": len(valid_times) / len(domain_times) * 100,
                 "times": domain_times,
                 "resolved_ips": list(all_ips),  # DNS解析到的IP地址列表
-                "http_stats": {},    # HTTP测试统计，key为IP地址（待填充）
+                "http_stats": {},  # HTTP测试统计，key为IP地址（待填充）
             }
         else:
             stats = {
@@ -423,7 +458,7 @@ async def async_test_dns_server(
                 "success_rate": 0,
                 "times": domain_times,
                 "resolved_ips": list(all_ips),  # DNS解析到的IP地址列表
-                "http_stats": {},    # HTTP测试统计，key为IP地址（待填充）
+                "http_stats": {},  # HTTP测试统计，key为IP地址（待填充）
             }
 
         results["domain_stats"][domain] = stats
@@ -450,7 +485,11 @@ async def async_test_dns_server(
 
     # 执行HTTP性能测试（如果启用）
     if enable_http_test and all_ips_across_domains:
-        print_colored(f"\n🌐 开始HTTP性能测试 ({len(all_ips_across_domains)}个IP地址)", Fore.CYAN, Style.BRIGHT)
+        print_colored(
+            f"\n🌐 开始HTTP性能测试 ({len(all_ips_across_domains)}个IP地址)",
+            Fore.CYAN,
+            Style.BRIGHT,
+        )
 
         # 为每个域名测试其解析到的IP地址
         http_test_tasks = []
@@ -498,7 +537,9 @@ async def async_test_dns_server(
 
                 # 将HTTP测试结果存储到对应域名的统计中
                 if domain in results["domain_stats"]:
-                    results["domain_stats"][domain]["http_stats"][ip_address] = http_result
+                    results["domain_stats"][domain]["http_stats"][
+                        ip_address
+                    ] = http_result
 
                     # 显示HTTP测试结果
                     if http_result.get("success"):
@@ -511,7 +552,9 @@ async def async_test_dns_server(
                             )
                     else:
                         error_msg = http_result.get("error", "未知错误")
-                        print_colored(f"  ❌ {domain} @ {ip_address}: {error_msg}", Fore.RED)
+                        print_colored(
+                            f"  ❌ {domain} @ {ip_address}: {error_msg}", Fore.RED
+                        )
 
         print_colored("🌐 HTTP性能测试完成", Fore.CYAN, Style.BRIGHT)
 
@@ -593,7 +636,7 @@ async def async_test_http_performance(
 
         start_time = asyncio.get_event_loop().time()
         redirects = []
-        current_url = f"http://{ip_address}/"
+        current_url = f"https://{ip_address}/"
 
         # 创建TCP连接器（用于SSL验证设置）
         connector = TCPConnector(ssl=verify_ssl)
@@ -627,7 +670,7 @@ async def async_test_http_performance(
 
                         # 检查是否需要重定向
                         if response.status in (301, 302, 303, 307, 308):
-                            location = response.headers.get('Location')
+                            location = response.headers.get("Location")
                             if location:
                                 redirects.append(current_url)
                                 current_url = location
@@ -637,12 +680,21 @@ async def async_test_http_performance(
                         return {
                             "ip_address": ip_address,
                             "connection_time": conn_time,
-                            "ttfb": response._response._start_time - conn_start if hasattr(response._response, '_start_time') and response._response._start_time is not None else None,
+                            # "ttfb": (
+                            #     response._response._start_time - conn_start
+                            #     if hasattr(response._response, "_start_time")
+                            #     and response._response._start_time is not None
+                            #     else None
+                            # ),
                             "total_time": end_time - start_time,
                             "data_size": len(content),
                             "status_code": response.status,
                             "success": response.status < 400,
-                            "error": None if response.status < 400 else f"HTTP {response.status}",
+                            "error": (
+                                None
+                                if response.status < 400
+                                else f"HTTP {response.status}"
+                            ),
                             "redirects": redirects,
                         }
 
@@ -658,8 +710,14 @@ async def async_test_http_performance(
         # 理论上不会执行到这里
         raise HTTPTestError("未知错误")
 
-    except (HTTPTimeoutError, HTTPConnectionError, HTTPSSLError,
-            HTTPRedirectError, HTTPStatusCodeError, HTTPTestError) as e:
+    except (
+        HTTPTimeoutError,
+        HTTPConnectionError,
+        HTTPSSLError,
+        HTTPRedirectError,
+        HTTPStatusCodeError,
+        HTTPTestError,
+    ) as e:
         return {
             "ip_address": ip_address,
             "connection_time": None,
@@ -1078,7 +1136,11 @@ class DNSBenchmark:
 
         if total_ips > 0:
             success_rate = (successful_ips / total_ips) * 100
-            color = Fore.GREEN if success_rate >= 80 else Fore.YELLOW if success_rate >= 50 else Fore.RED
+            color = (
+                Fore.GREEN
+                if success_rate >= 80
+                else Fore.YELLOW if success_rate >= 50 else Fore.RED
+            )
             print_colored(f"   HTTP成功率: {success_rate:.1f}%", color)
 
         # 显示时间统计
@@ -1129,7 +1191,9 @@ class DNSBenchmark:
                         "other": "其他错误",
                     }.get(error_type, error_type)
 
-                    print_colored(f"   {error_type_name}: {count} ({percentage:.1f}%)", color)
+                    print_colored(
+                        f"   {error_type_name}: {count} ({percentage:.1f}%)", color
+                    )
 
         # 按DNS服务器显示详细HTTP结果
         print_colored("\n📋 各DNS服务器HTTP测试结果:", Fore.WHITE)
@@ -1145,7 +1209,11 @@ class DNSBenchmark:
 
             if total_ips_server > 0:
                 success_rate_server = (successful_ips_server / total_ips_server) * 100
-                color = Fore.GREEN if success_rate_server >= 80 else Fore.YELLOW if success_rate_server >= 50 else Fore.RED
+                color = (
+                    Fore.GREEN
+                    if success_rate_server >= 80
+                    else Fore.YELLOW if success_rate_server >= 50 else Fore.RED
+                )
                 print_colored(
                     f"   {dns_server}: {successful_ips_server}成功/{failed_ips_server}失败/{total_ips_server}总计 ({success_rate_server:.1f}%)",
                     color,
@@ -1214,7 +1282,12 @@ class DNSBenchmark:
             return False
 
 
-def print_summary_table(results: List[Dict], num_tests: int, domains: List[str], enable_http_test: bool = False):
+def print_summary_table(
+    results: List[Dict],
+    num_tests: int,
+    domains: List[str],
+    enable_http_test: bool = False,
+):
     """
     打印汇总结果表格
     修复统计计算问题，使用None代替float('inf')
@@ -1325,18 +1398,26 @@ def print_summary_table(results: List[Dict], num_tests: int, domains: List[str],
             # 计算综合得分（DNS占40%，HTTP占60%）
             if avg_time is not None and http_stats["enabled"]:
                 # DNS得分（响应时间越小越好，成功率越高越好）
-                dns_time_score = max(0, min(1, 1.0 - (avg_time / 5.0)))  # 假设5秒为最大可接受时间
+                dns_time_score = max(
+                    0, min(1, 1.0 - (avg_time / 5.0))
+                )  # 假设5秒为最大可接受时间
                 dns_success_score = success_rate / 100.0
-                dns_score = (dns_time_score * 0.7 + dns_success_score * 0.3)  # 时间权重70%，成功率30%
+                dns_score = (
+                    dns_time_score * 0.7 + dns_success_score * 0.3
+                )  # 时间权重70%，成功率30%
 
                 # HTTP得分
                 http_time_score = 0
                 http_success_score = http_success_rate / 100.0
 
                 if avg_http_time is not None:
-                    http_time_score = max(0, min(1, 1.0 - (avg_http_time / 30.0)))  # 假设30秒为最大可接受时间
+                    http_time_score = max(
+                        0, min(1, 1.0 - (avg_http_time / 30.0))
+                    )  # 假设30秒为最大可接受时间
 
-                http_score = (http_time_score * 0.5 + http_success_score * 0.5)  # 时间权重50%，成功率50%
+                http_score = (
+                    http_time_score * 0.5 + http_success_score * 0.5
+                )  # 时间权重50%，成功率50%
 
                 # 综合得分（DNS占40%，HTTP占60%）
                 combined_score = dns_score * 0.4 + http_score * 0.6
@@ -1362,7 +1443,10 @@ def print_summary_table(results: List[Dict], num_tests: int, domains: List[str],
         # 如果启用了HTTP测试且有综合得分，按综合得分排序（得分越高越好）
         if enable_http_test and x.get("combined_score") is not None:
             score = x["combined_score"]
-            return (-score, x["avg_time"] if x["avg_time"] is not None else float("inf"))
+            return (
+                -score,
+                x["avg_time"] if x["avg_time"] is not None else float("inf"),
+            )
 
         # 否则按DNS平均时间排序（时间越短越好）
         avg = x["avg_time"]
@@ -1483,7 +1567,11 @@ def print_summary_table(results: List[Dict], num_tests: int, domains: List[str],
                 if enable_http_test:
                     http_stats = row.get("http_stats")
                     combined_score = row.get("combined_score")
-                    if http_stats and http_stats.get("enabled") and combined_score is not None:
+                    if (
+                        http_stats
+                        and http_stats.get("enabled")
+                        and combined_score is not None
+                    ):
                         http_success_rate = http_stats.get("success_rate", 0)
                         http_avg_time = http_stats.get("avg_total_time")
 
@@ -1556,7 +1644,11 @@ def print_summary_table(results: List[Dict], num_tests: int, domains: List[str],
             if enable_http_test:
                 http_stats = row.get("http_stats")
                 combined_score = row.get("combined_score")
-                if http_stats and http_stats.get("enabled") and combined_score is not None:
+                if (
+                    http_stats
+                    and http_stats.get("enabled")
+                    and combined_score is not None
+                ):
                     http_success_rate = http_stats.get("success_rate", 0)
                     http_avg_time = http_stats.get("avg_total_time")
 
@@ -1592,7 +1684,9 @@ def print_summary_table(results: List[Dict], num_tests: int, domains: List[str],
 
     if recommendations == 0:
         if enable_http_test:
-            print_colored("⚠️  没有找到同时满足DNS和HTTP性能要求的DNS服务器推荐", Fore.YELLOW)
+            print_colored(
+                "⚠️  没有找到同时满足DNS和HTTP性能要求的DNS服务器推荐", Fore.YELLOW
+            )
         else:
             print_colored("⚠️  没有找到可靠的DNS服务器推荐", Fore.YELLOW)
 
@@ -1691,36 +1785,31 @@ async def async_main():
     http_group.add_argument(
         "--enable-http-test",
         action="store_true",
-        help="启用HTTP性能测试（测试DNS返回IP的实际访问速度）"
+        help="启用HTTP性能测试（测试DNS返回IP的实际访问速度）",
     )
     http_group.add_argument(
         "--http-timeout",
         type=float,
         default=10.0,
-        help="HTTP请求超时时间(秒) (默认: 10.0)"
+        help="HTTP请求超时时间(秒) (默认: 10.0)",
     )
     http_group.add_argument(
         "--max-http-concurrency",
         type=int,
         default=5,
-        help="HTTP测试最大并发数 (默认: 5)"
+        help="HTTP测试最大并发数 (默认: 5)",
     )
     http_group.add_argument(
-        "--max-redirects",
-        type=int,
-        default=5,
-        help="HTTP最大重定向次数 (默认: 5)"
+        "--max-redirects", type=int, default=5, help="HTTP最大重定向次数 (默认: 5)"
     )
     http_group.add_argument(
-        "--verify-ssl",
-        action="store_true",
-        help="启用SSL证书验证（默认禁用）"
+        "--verify-ssl", action="store_true", help="启用SSL证书验证（默认禁用）"
     )
     http_group.add_argument(
         "--user-agent",
         type=str,
         default="DNS-Benchmark/1.0",
-        help="自定义User-Agent字符串"
+        help="自定义User-Agent字符串",
     )
 
     parser.add_argument("--no-color", action="store_true", help="禁用彩色输出")
@@ -1796,7 +1885,9 @@ async def async_main():
         print_colored(f"   ⏱️  HTTP超时: {args.http_timeout} 秒", Fore.WHITE)
         print_colored(f"   🔄 最大并发: {args.max_http_concurrency}", Fore.WHITE)
         print_colored(f"   ↪️  最大重定向: {args.max_redirects}", Fore.WHITE)
-        print_colored(f"   🔒 SSL验证: {'启用' if args.verify_ssl else '禁用'}", Fore.WHITE)
+        print_colored(
+            f"   🔒 SSL验证: {'启用' if args.verify_ssl else '禁用'}", Fore.WHITE
+        )
     else:
         print_colored("🌐 HTTP测试: 未启用", Fore.WHITE)
 
