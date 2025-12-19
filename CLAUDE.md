@@ -1,28 +1,10 @@
 # CLAUDE.md
 
-## 项目概述和用途
+## 开发文档
 
-**dns-benchmark** 是一个跨平台的 DNS 服务器性能测试工具，用于评估和比较不同 DNS 服务器的响应速度、稳定性和可靠性。
+**dns-benchmark** 开发文档。本文件为开发者和贡献者提供详细的技术说明、架构指南和开发规范。
 
-### 主要功能
-
-- **异步并发测试**：使用 aiodns 库实现高性能异步 DNS 查询
-- **多服务器比较**：同时测试多个 DNS 服务器并进行排名
-- **HTTP 性能测试**：测试 DNS 返回 IP 地址的实际网页访问性能（可选）
-- **综合评分系统**：结合 DNS 响应时间和 HTTP 访问时间进行综合排名
-- **详细统计报告**：提供平均响应时间、成功率、标准差等统计指标
-- **彩色终端输出**：使用 colorama 提供直观的彩色界面
-- **跨平台支持**：兼容 Windows 和 Linux 系统
-- **结果导出**：支持将详细报告保存到文本文件
-
-### 典型应用场景
-
-- 选择最优的公共 DNS 服务器（如 Google DNS 8.8.8.8, Cloudflare 1.1.1.1 等）
-- 评估企业内网 DNS 服务器性能
-- 网络故障排查和 DNS 服务质量监控
-- 比较不同地区 DNS 服务器的响应速度
-- 测试 DNS 解析结果的实际网页访问性能
-- 评估 DNS 服务器对特定网站的实际访问效率
+> **注意**：这是面向开发者的技术文档。用户文档请参阅 [README.md](README.md)。
 
 ## 开发环境设置指南
 
@@ -62,7 +44,7 @@
 3. **验证安装**：
 
    ```bash
-   python main.py --help
+   uv run main.py --help
    ```
 
 ### 依赖包说明
@@ -412,24 +394,7 @@ if __name__ == '__main__':
 
 ### 常见问题及解决方案
 
-#### 问题 1：模块导入错误
-
-```plain
-错误: 缺少必要的Python模块
-未找到模块: No module named 'dns'
-```
-
-**解决方案**：
-
-```bash
-# 使用UV安装依赖
-uv sync
-
-# 或手动安装
-pip install aiodns colorama tabulate
-```
-
-#### 问题 2：异步模式不可用
+#### 问题 1：异步模式不可用
 
 ```plain
 错误: aiodns 模块不可用，无法进行DNS测试
@@ -438,13 +403,13 @@ pip install aiodns colorama tabulate
 **解决方案**：
 
 ```bash
-# 确保aiodns已安装
-pip install aiodns
+# 使用UV安装依赖
+uv sync
 ```
 
 注意：本工具仅支持异步模式，需要 aiodns 模块才能运行。
 
-#### 问题 3：DNS 查询超时
+#### 问题 2：DNS 查询超时
 
 ```plain
 超时: google.com @ 8.8.8.8 (2.0s)
@@ -457,7 +422,7 @@ pip install aiodns
 3. 增加重试次数：`--retries 3`
 4. 尝试其他 DNS 服务器
 
-#### 问题 4：Windows 平台事件循环错误
+#### 问题 3：Windows 平台事件循环错误
 
 ```plain
 RuntimeError: Event loop is closed
@@ -473,7 +438,7 @@ RuntimeError: Event loop is closed
   set UV_FORCE_COLOR=1
   ```
 
-#### 问题 5：彩色输出异常
+#### 问题 4：彩色输出异常
 
 - **Linux/macOS**：确保终端支持 ANSI 颜色
 - **Windows**：colorama 会自动初始化，如果仍有问题使用`--no-color`参数
@@ -510,6 +475,5 @@ logging.basicConfig(level=logging.DEBUG)
 
 ---
 
-**最后更新**：2025-12-07
+**最后更新**：2025-12-19
 **维护者**：项目开发团队
-**项目状态**：稳定可用，持续维护中

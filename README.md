@@ -60,13 +60,6 @@ source .venv/bin/activate
 python main.py --help
 ```
 
-### 使用 pip
-
-```bash
-# 基本依赖（必需）
-pip install aiodns colorama tabulate aiohttp
-```
-
 ## 快速开始
 
 ### 基本用法
@@ -207,81 +200,73 @@ if __name__ == '__main__':
 
 ```plain
 dns-benchmark/
-├── LICENSE              # MIT 授权文件
-├── README.md           # 用户文档
-├── CLAUDE.md           # 开发指南（用于 Claude Code）
-├── main.py              # 主程序文件
-├── pyproject.toml       # 项目配置和依赖声明
-├── uv.lock              # UV 锁文件（依赖版本锁定）
+├── LICENSE              # MIT 许可证
+├── README.md           # 用户文档（本文件）
+├── CLAUDE.md           # 开发指南
+├── main.py              # 主程序入口
+├── pyproject.toml       # 项目配置
+├── uv.lock              # 依赖锁定文件
 └── logs/                # 测试结果日志目录
-    └── dns_benchmark_details.txt  # 详细测试报告示例
 ```
 
-## 依赖包
+> 详细的项目结构说明和开发文档请参阅 [CLAUDE.md](CLAUDE.md)。
 
-- **aiodns (>=3.6.0)**：异步 DNS 解析库，提供高性能并发查询（必需）
-- **colorama (>=0.4.6)**：跨平台彩色终端输出（必需）
-- **tabulate (>=0.9.0)**：表格输出（必需）
-- **aiohttp (>=3.9.0)**：异步 HTTP 客户端库，用于 HTTP 性能测试（必需）
+## 依赖管理
 
-## 故障排除
+本项目使用 [uv](https://github.com/astral-sh/uv) 进行依赖管理。安装时运行 `uv sync` 会自动安装所有必需依赖。
 
-### 常见问题
+主要依赖包括：
 
-1. **模块导入错误**：
+- **aiodns**：异步 DNS 解析库
+- **colorama**：跨平台彩色终端输出
+- **tabulate**：表格输出
+- **aiohttp**：异步 HTTP 客户端库（用于 HTTP 测试）
 
-   ```bash
-   # 使用UV安装依赖
-   uv sync
+> 完整的依赖说明和版本要求请参阅 [CLAUDE.md](CLAUDE.md) 和 `pyproject.toml` 文件。
 
-   # 或手动安装
-   pip install aiodns colorama tabulate
-   ```
+## 常见问题
 
-2. **异步模式不可用**：
+### 安装问题
 
-   ```bash
-   # 确保aiodns已安装
-   pip install aiodns
-   ```
+**Q: 运行时报错 "No module named 'aiodns'" 或缺少依赖？**
 
-   注意：本工具仅支持异步模式，需要 aiodns 模块才能运行。
+A: 请使用 UV 重新安装依赖：
 
-3. **DNS 查询超时**：
+```bash
+uv sync
+```
 
-   - 检查网络连接
-   - 增加超时时间：`--timeout 5.0`
-   - 增加重试次数：`--retries 3`
-   - 尝试其他 DNS 服务器
+或使用 pip 手动安装：
 
-4. **Windows 平台事件循环错误**：
+```bash
+pip install aiodns colorama tabulate aiohttp
+```
 
-   ```plain
-   RuntimeError: Event loop is closed
-   ```
+### 使用问题
 
-   - 代码已自动处理 Windows 事件循环
-   - 确保使用 Python 3.13+版本
-   - 如果仍有问题，设置环境变量：
+**Q: DNS 查询经常超时？**
 
-     ```bash
-     set UV_FORCE_COLOR=1
-     ```
+A:
 
-5. **彩色输出异常**：
-   - **Linux/macOS**：确保终端支持 ANSI 颜色
-   - **Windows**：colorama 会自动初始化，如果仍有问题使用 `--no-color` 参数
+- 检查网络连接是否正常
+- 增加超时时间：`--timeout 5.0`
+- 增加重试次数：`--retries 3`
+- 尝试其他 DNS 服务器
 
-### 性能优化建议
+**Q: Windows 上运行出现 "Event loop is closed" 错误？**
 
-1. 减少测试次数：对于快速测试，使用 `-t 1` 或 `-t 2`
-2. 调整超时时间：根据网络状况调整 `--timeout` 参数
-3. 限制并发数：大量 DNS 服务器时，分批测试
-4. 使用本地缓存：考虑添加 DNS 查询结果缓存
+A: 代码已自动处理 Windows 事件循环问题，请确保：
 
-## 开发指南
+1. 使用 Python 3.13 或更高版本
+2. 如果仍有问题，设置环境变量：`set UV_FORCE_COLOR=1`
 
-详细开发指南请参阅 [CLAUDE.md](CLAUDE.md) 文件。
+**Q: 终端显示异常或没有颜色？**
+
+A: 使用 `--no-color` 参数禁用彩色输出。
+
+### 获取更多帮助
+
+如需更多技术细节、性能优化建议或开发文档，请参阅 [CLAUDE.md](CLAUDE.md)。
 
 ## 许可证
 
@@ -301,10 +286,9 @@ dns-benchmark/
 
 如有问题或建议：
 
-- 提交 [Issue](https://github.com/yourusername/dns-benchmark/issues)
+- 提交 [Issue](https://github.com/liyuan-rey/dns-benchmark/issues)
 
 ---
 
-**最后更新**：2025-12-08
+**最后更新**：2025-12-17
 **版本**：0.1.0
-**状态**：稳定可用，持续维护中
