@@ -632,6 +632,7 @@ async def async_test_http_performance(
         }
 
     try:
+        from urllib.parse import urljoin, urlparse
         from aiohttp import ClientSession, ClientTimeout, TCPConnector
 
         start_time = asyncio.get_event_loop().time()
@@ -649,10 +650,14 @@ async def async_test_http_performance(
                 conn_start = asyncio.get_event_loop().time()
 
                 try:
+                    # 解析当前URL获取主机名，用于Host头
+                    parsed_url = urlparse(current_url)
+                    host_header = parsed_url.netloc if parsed_url.netloc else domain
+
                     async with session.get(
                         current_url,
                         headers={
-                            "Host": domain,
+                            "Host": host_header,
                             "User-Agent": user_agent,
                             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                             "Accept-Language": "en-US,en;q=0.9",
@@ -671,10 +676,15 @@ async def async_test_http_performance(
                         # 检查是否需要重定向
                         if response.status in (301, 302, 303, 307, 308):
                             location = response.headers.get("Location")
-                            if location:
-                                redirects.append(current_url)
-                                current_url = location
-                                continue  # 处理重定向
+                            if not location:
+                                raise HTTPRedirectError(f"重定向响应缺少Location头: {response.status}")
+                            # 检测重定向循环
+                            if current_url in redirects:
+                                raise HTTPRedirectError(f"检测到重定向循环: {current_url}")
+                            redirects.append(current_url)
+                            # 使用urljoin正确处理相对路径重定向
+                            current_url = urljoin(current_url, location)
+                            continue  # 处理重定向
 
                         # 成功获取最终响应
                         return {
